@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.sqlite3
+*.db
+*.log
+.env
+.env.*
+
+# Virtual environments
+.venv/
+venv/
+
+# Editor directories
+.vscode/
+.idea/
+
+# Docker
+docker-compose.override.yml
+**/node_modules
+
+# OS files
+.DS_Store
+Thumbs.db
