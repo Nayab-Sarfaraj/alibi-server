@@ -1,7 +1,8 @@
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseSettings, Field
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -13,18 +14,20 @@ def as_bool(value: Any) -> bool:
 
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = Field("courtroom-server", env="PROJECT_NAME")
-    VERSION: str = Field("0.1.0", env="VERSION")
-    APP_ENV: str = Field("development", env="APP_ENV")
-    APP_HOST: str = Field("0.0.0.0", env="APP_HOST")
-    APP_PORT: int = Field(8000, env="APP_PORT")
-    LOG_LEVEL: str = Field("info", env="LOG_LEVEL")
-    DATABASE_URL: str = Field("sqlite:///./courtroom.db", env="DATABASE_URL")
-    SQL_ECHO: bool = Field(False, env="SQL_ECHO")
+    PROJECT_NAME: str = Field(default="courtroom-server", validation_alias="PROJECT_NAME")
+    VERSION: str = Field(default="0.1.0", validation_alias="VERSION")
+    APP_ENV: str = Field(default="development", validation_alias="APP_ENV")
+    APP_HOST: str = Field(default="0.0.0.0", validation_alias="APP_HOST")
+    APP_PORT: int = Field(default=8000, validation_alias="APP_PORT")
+    LOG_LEVEL: str = Field(default="info", validation_alias="LOG_LEVEL")
+    DATABASE_URL: str = Field(default="sqlite:///./courtroom.db", validation_alias="DATABASE_URL")
+    SQL_ECHO: bool = Field(default=False, validation_alias="SQL_ECHO")
 
-    class Config:
-        env_file = BASE_DIR / ".." / ".env"
-        env_file_encoding = "utf-8"
+    model_config = {
+        "env_file": BASE_DIR / ".." / ".env",
+        "env_file_encoding": "utf-8",
+        "extra": "ignore",
+    }
 
 
 settings = Settings()

@@ -2,5 +2,8 @@ from fastapi import APIRouter
 
 from app.api.v1.endpoints import health
 
-router = APIRouter()
-router.include_router(health.router)
+api_router = APIRouter()
+api_router.include_router(health.router)
+
+# Backward-compatible alias used by existing imports.
+router = api_router
