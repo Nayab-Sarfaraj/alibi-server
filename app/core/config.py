@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = Field(default="info", validation_alias="LOG_LEVEL")
     DATABASE_URL: str = Field(default="sqlite:///./courtroom.db", validation_alias="DATABASE_URL")
     SQL_ECHO: bool = Field(default=False, validation_alias="SQL_ECHO")
+    SECRET_KEY: str = Field(default="your-secret-key", validation_alias="SECRET_KEY")
 
     model_config = {
         "env_file": BASE_DIR / ".." / ".env",
