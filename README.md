@@ -5,8 +5,8 @@ A production-ready FastAPI service scaffold for courtroom-related applications.
 ## Features
 
 - FastAPI application layout with versioned API routing
-- Environment-based configuration using `python-dotenv`
-- SQLAlchemy database session and model structure
+- Environment-based configuration using `python-dotenv` and `pydantic-settings`
+- SQLAlchemy ORM-based database access for PostgreSQL
 - Docker and Docker Compose setup for local development
 - Pytest-based tests and developer tooling support
 
@@ -28,13 +28,16 @@ A production-ready FastAPI service scaffold for courtroom-related applications.
 
    ```bash
    pip install -r requirements.txt
+   pip install -r requirements-dev.txt
    ```
 
-3. Copy environment variables:
+3. Create your environment file:
 
    ```bash
-   copy .env.example .env
+   copy NUL .env
    ```
+
+   Then set values such as `DATABASE_URL` for your PostgreSQL connection.
 
 4. Start the app:
 
@@ -59,5 +62,5 @@ docker compose up --build
 Run the suite with:
 
 ```bash
-pytest
+python -m pytest
 ```
