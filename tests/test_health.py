@@ -10,4 +10,4 @@ async def test_health_endpoint() -> None:
         response = await client.get("/api/v1/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "message": "Courtroom server is healthy."}
+    assert response.json() == {"status": "ok", "message": "Alibi server is healthy."}

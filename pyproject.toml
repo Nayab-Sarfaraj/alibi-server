@@ -3,13 +3,13 @@ requires = ["setuptools>=65.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "courtroom-server"
+name = "alibi-server"
 version = "0.1.0"
-description = "Production-ready FastAPI backend for courtroom services."
+description = "Production-ready FastAPI backend for Alibi."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-keywords = ["fastapi", "courtroom", "api", "backend"]
+keywords = ["fastapi", "alibi", "api", "backend"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Framework :: FastAPI",

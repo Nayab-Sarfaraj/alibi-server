@@ -14,7 +14,7 @@ def as_bool(value: Any) -> bool:
 
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = Field(default="courtroom-server", validation_alias="PROJECT_NAME")
+    PROJECT_NAME: str = Field(default="alibi-server", validation_alias="PROJECT_NAME")
     VERSION: str = Field(default="0.1.0", validation_alias="VERSION")
     APP_ENV: str = Field(default="development", validation_alias="APP_ENV")
     APP_HOST: str = Field(default="0.0.0.0", validation_alias="APP_HOST")

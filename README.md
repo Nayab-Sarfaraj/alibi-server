@@ -1,6 +1,6 @@
-# Courtroom Server
+# Alibi Server
 
-A production-ready FastAPI service scaffold for courtroom-related applications.
+A production-ready FastAPI service scaffold for Alibi.
 
 ## Features
 

@@ -6,7 +6,7 @@ from app.db.session import engine
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    description="FastAPI backend for courtroom services.",
+    description="FastAPI backend for Alibi.",
     version=settings.VERSION,
 )
 
