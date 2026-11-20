@@ -1,1 +1,1 @@
-# Tests package initializer
+"""Backend test suite."""

@@ -1,6 +1,5 @@
-from fastapi import APIRouter
+"""HTTP API package."""
 
-from app.api.v1.endpoints import health
+from app.api.router import router as api_router
 
-api_router = APIRouter()
-api_router.include_router(health.router)
+__all__ = ["api_router"]

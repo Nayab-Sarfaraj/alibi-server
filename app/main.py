@@ -1,8 +1,7 @@
 from fastapi import FastAPI
 
-from app.api.v1 import api_router
+from app.api.router import router as api_router
 from app.core.config import settings
-from app.db.session import engine
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -10,17 +9,19 @@ app = FastAPI(
     version=settings.VERSION,
 )
 
-app.include_router(api_router, prefix="/api/v1")
+app.include_router(api_router)
+
 
 @app.on_event("startup")
 async def on_startup() -> None:
-    # Initialize or check services here, e.g. database connection pooling or cache warming.
-    pass
+    settings.validate_required_settings()
+
 
 @app.on_event("shutdown")
 async def on_shutdown() -> None:
     # Clean up resources here.
     pass
+
 
 @app.get("/")
 def health_check() -> dict[str, str]:
