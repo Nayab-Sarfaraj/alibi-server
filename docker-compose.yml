@@ -1,29 +1,47 @@
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: alibi-server-app
-    ports:
-      - "8000:8000"
-    env_file:
-      - .env
-    depends_on:
-      - db
-    restart: on-failure
-
-  db:
-    image: postgres:16-alpine
-    container_name: alibi-server-db
-    environment:
-      POSTGRES_USER:
-      POSTGRES_PASSWORD:
-      POSTGRES_DB:
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+  postgres:
+    image: postgres:16
     restart: unless-stopped
+    environment:
+      POSTGRES_USER: alibi
+      POSTGRES_PASSWORD:
+      POSTGRES_DB: alibi_db
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - alibi_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U alibi -d alibi_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    restart: unless-stopped
+    command:
+      - uvicorn
+      - app.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --reload
+    environment:
+      APP_ENV: development
+      APP_HOST: 0.0.0.0
+      APP_PORT: "8000"
+      DEBUG: "true"
+      DATABASE_URL:
+      SQL_ECHO: "false"
+      WATCHFILES_FORCE_POLLING: "true"
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./app:/app/app
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
-  postgres_data:
+  alibi_postgres_data:

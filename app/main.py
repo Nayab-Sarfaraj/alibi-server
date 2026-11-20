@@ -10,6 +10,7 @@ from app.api.router import router as api_router
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import configure_logging
+from app.core.middleware import register_security_middleware
 from app.db.session import close_db, engine
 
 
@@ -40,6 +41,11 @@ def create_app() -> FastAPI:
         docs_url="/docs" if settings.APP_ENV != "production" else None,
         redoc_url=None,
         openapi_url="/openapi.json" if settings.APP_ENV != "production" else None,
+    )
+    register_security_middleware(
+        app,
+        trusted_hosts=settings.TRUSTED_HOSTS,
+        max_body_bytes=settings.MAX_REQUEST_BODY_BYTES,
     )
     app.add_middleware(
         CORSMiddleware,

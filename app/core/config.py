@@ -21,6 +21,14 @@ class Settings(BaseSettings):
     APP_PORT: int = Field(default=8000, validation_alias="APP_PORT")
     LOG_LEVEL: str = Field(default="info", validation_alias="LOG_LEVEL")
     CORS_ORIGINS: list[str] = Field(default_factory=list)
+    TRUSTED_HOSTS: list[str] = Field(
+        default_factory=lambda: ["localhost", "127.0.0.1", "testserver"]
+    )
+    MAX_REQUEST_BODY_BYTES: int = Field(
+        default=1_048_576,
+        ge=1024,
+        le=10_485_760,
+    )
     DATABASE_URL: SecretStr | None = Field(
         default=None, validation_alias="DATABASE_URL"
     )
@@ -67,6 +75,10 @@ class Settings(BaseSettings):
             errors.append("DATABASE_URL must be configured")
 
         if self.APP_ENV in {"staging", "production"}:
+            if not self.TRUSTED_HOSTS or "*" in self.TRUSTED_HOSTS:
+                errors.append(
+                    "TRUSTED_HOSTS must contain explicit hostnames outside development"
+                )
             required_secret_files = ("DATABASE_URL", "SECRET_KEY")
             if not SECRETS_DIR.is_dir():
                 errors.append(f"SECRETS_DIR does not exist: {SECRETS_DIR}")
