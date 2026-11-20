@@ -1,14 +1,16 @@
+import os
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic import Field, SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 AppEnvironment = Literal["development", "testing", "staging", "production"]
 
-DEFAULT_DATABASE_URL = ""
 INSECURE_SECRET_KEYS = {"", "your-secret-key", "change-me"}
+SECRETS_DIR = Path(os.getenv("SECRETS_DIR", "/run/secrets"))
+CONFIGURED_SECRETS_DIR = SECRETS_DIR if SECRETS_DIR.is_dir() else None
 
 
 class Settings(BaseSettings):
@@ -18,29 +20,67 @@ class Settings(BaseSettings):
     APP_HOST: str = Field(default="0.0.0.0", validation_alias="APP_HOST")
     APP_PORT: int = Field(default=8000, validation_alias="APP_PORT")
     LOG_LEVEL: str = Field(default="info", validation_alias="LOG_LEVEL")
-    DATABASE_URL: str = Field(
-        default=DEFAULT_DATABASE_URL, validation_alias="DATABASE_URL"
+    CORS_ORIGINS: list[str] = Field(default_factory=list)
+    DATABASE_URL: SecretStr | None = Field(
+        default=None, validation_alias="DATABASE_URL"
     )
+    DB_POOL_SIZE: int = Field(default=5, ge=1)
+    DB_MAX_OVERFLOW: int = Field(default=10, ge=0)
+    DB_POOL_TIMEOUT: int = Field(default=10, gt=0)
+    DB_POOL_RECYCLE: int = Field(default=1800, gt=0)
     SQL_ECHO: bool = Field(default=False, validation_alias="SQL_ECHO")
-    SECRET_KEY: str = Field(default="your-secret-key", validation_alias="SECRET_KEY")
+    APP_DEBUG: bool = Field(default=False, validation_alias="APP_DEBUG")
+    SECRET_KEY: SecretStr = Field(
+        default=SecretStr("your-secret-key"), validation_alias="SECRET_KEY"
+    )
 
-    model_config = {
-        "env_file": BASE_DIR / ".env",
-        "env_file_encoding": "utf-8",
-        "extra": "ignore",
-    }
+    model_config = SettingsConfigDict(
+        env_file=BASE_DIR / ".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        secrets_dir=CONFIGURED_SECRETS_DIR,
+    )
+
+    @property
+    def database_url(self) -> str:
+        """Return the database URL only for consumers that require its plaintext value."""
+        if self.DATABASE_URL is None:
+            raise RuntimeError(
+                "DATABASE_URL must be configured before initializing the database"
+            )
+        return self.DATABASE_URL.get_secret_value()
+
+    @property
+    def secret_key(self) -> str:
+        """Return the application secret only for cryptographic operations."""
+        return self.SECRET_KEY.get_secret_value()
+
+    def redacted_settings(self) -> dict[str, object]:
+        """Return safe configuration metadata suitable for diagnostic logs."""
+        return self.model_dump(exclude={"DATABASE_URL", "SECRET_KEY"})
 
     def validate_required_settings(self) -> None:
         """Reject unsafe placeholder configuration in deployed environments."""
         errors: list[str] = []
 
-        if not self.DATABASE_URL:
+        if self.DATABASE_URL is None:
             errors.append("DATABASE_URL must be configured")
 
         if self.APP_ENV in {"staging", "production"}:
-            if self.DATABASE_URL == DEFAULT_DATABASE_URL:
-                errors.append("DATABASE_URL must not use the development default")
-            if self.SECRET_KEY in INSECURE_SECRET_KEYS or len(self.SECRET_KEY) < 32:
+            required_secret_files = ("DATABASE_URL", "SECRET_KEY")
+            if not SECRETS_DIR.is_dir():
+                errors.append(f"SECRETS_DIR does not exist: {SECRETS_DIR}")
+            else:
+                missing_files = [
+                    secret_name
+                    for secret_name in required_secret_files
+                    if not (SECRETS_DIR / secret_name).is_file()
+                ]
+                if missing_files:
+                    errors.append(
+                        "missing required secret files: " + ", ".join(missing_files)
+                    )
+            if self.secret_key in INSECURE_SECRET_KEYS or len(self.secret_key) < 32:
                 errors.append(
                     "SECRET_KEY must be a non-placeholder value of at least 32 characters"
                 )
@@ -52,6 +92,7 @@ class Settings(BaseSettings):
 class DevelopmentSettings(Settings):
     APP_ENV: Literal["development"] = "development"
     SQL_ECHO: bool = True
+    APP_DEBUG: bool = True
 
 
 class TestingSettings(Settings):

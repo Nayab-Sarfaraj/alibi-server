@@ -8,3 +8,8 @@ from app.modules.users.router import router as users_router
 router = APIRouter()
 router.include_router(users_router, prefix="/users", tags=["users"])
 router.include_router(cases_router, prefix="/cases", tags=["cases"])
+
+
+@router.get("/ping", tags=["System"])
+async def ping() -> dict[str, str]:
+    return {"message": "pong"}

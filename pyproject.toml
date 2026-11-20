@@ -17,13 +17,15 @@ classifiers = [
 dependencies = [
   "fastapi>=0.110.0",
   "uvicorn[standard]>=0.23.0",
-  "SQLAlchemy>=2.0.18",
+  "sqlalchemy[asyncio]>=2.0,<2.1",
   "psycopg[binary]>=3.2.0",
   "python-dotenv>=1.0.0",
   "pydantic>=2.8.0",
   "pydantic-settings>=2.3.0",
   "pwdlib[argon2]==0.3.0",
   "python-jose[cryptography]>=3.5.0",
+  "alembic>=1.16",
+  "pip>=26.3",
 ]
 
 [project.optional-dependencies]

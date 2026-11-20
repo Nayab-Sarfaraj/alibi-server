@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   app:
     build:
@@ -18,9 +16,9 @@ services:
     image: postgres:16-alpine
     container_name: alibi-server-db
     environment:
-      POSTGRES_USER: courtroom
+      POSTGRES_USER:
       POSTGRES_PASSWORD:
-      POSTGRES_DB: courtroom
+      POSTGRES_DB:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
