@@ -54,6 +54,7 @@ def test_supabase_settings_defaults_and_derivation() -> None:
     settings_with_url = Settings(
         _env_file=None,
         SUPABASE_URL="https://test-project.supabase.co",
+        SUPABASE_JWKS_URL="",
     )
     assert settings_with_url.SUPABASE_URL == "https://test-project.supabase.co"
     assert (
