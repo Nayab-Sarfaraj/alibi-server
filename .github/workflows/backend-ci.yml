@@ -47,6 +47,8 @@ jobs:
       DATABASE_URL: postgresql+psycopg://alibi:${{ github.run_id }}@localhost:5432/alibi_test
       TEST_DATABASE_URL: postgresql+psycopg://alibi:${{ github.run_id }}@localhost:5432/alibi_test
       REDIS_URL: redis://localhost:6379/0
+      # Invalid-token tests reject malformed JWTs before attempting a network fetch.
+      SUPABASE_JWKS_URL: https://example.invalid/auth/v1/.well-known/jwks.json
 
     steps:
       - name: Checkout repository

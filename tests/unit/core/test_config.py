@@ -84,3 +84,38 @@ def test_supabase_settings_explicit_override() -> None:
         == "https://custom-issuer.example.com/jwks.json"
     )
     assert settings_custom.SUPABASE_JWT_AUDIENCE == "custom-audience"
+
+
+@pytest.mark.parametrize(
+    ("environment", "url"),
+    [
+        ("development", "http://supabase.example.com"),
+        ("testing", "http://127.0.0.1:54321"),
+        ("production", "http://supabase.example.com"),
+        ("production", "https:///missing-host"),
+    ],
+)
+def test_supabase_url_rejects_cleartext_or_invalid_hosts(
+    environment: str,
+    url: str,
+) -> None:
+    configured_settings = Settings(
+        _env_file=None,
+        APP_ENV=environment,
+        DATABASE_URL="postgresql+psycopg://user@localhost/alibi",
+        SUPABASE_URL=url,
+    )
+
+    with pytest.raises(ValueError, match="SUPABASE_URL"):
+        configured_settings.validate_required_settings()
+
+
+def test_development_allows_loopback_http_supabase_url() -> None:
+    configured_settings = Settings(
+        _env_file=None,
+        APP_ENV="development",
+        DATABASE_URL="postgresql+psycopg://user@localhost/alibi",
+        SUPABASE_URL="http://127.0.0.1:54321",
+    )
+
+    configured_settings.validate_required_settings()
