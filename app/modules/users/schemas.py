@@ -1,6 +1,7 @@
 """User request and response schemas."""
 
 from datetime import datetime
+from urllib.parse import urlparse
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
@@ -96,7 +97,12 @@ class UserProfileUpdate(BaseModel):
         if value is None:
             return value
         avatar_url = value.strip()
-        if len(avatar_url) > 500 or not avatar_url.startswith(("https://", "http://")):
+        parsed_url = urlparse(avatar_url)
+        if (
+            len(avatar_url) > 500
+            or parsed_url.scheme not in {"http", "https"}
+            or not parsed_url.hostname
+        ):
             raise ValueError("Avatar URL must be an HTTP(S) URL up to 500 characters")
         return avatar_url
 

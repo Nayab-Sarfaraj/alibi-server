@@ -64,7 +64,7 @@ async def create_user(
         insert(User)
         .values(
             auth_subject=user.auth_subject,
-            email=user.email,
+            email=user.email or None,
             is_guest=user.is_guest,
         )
         .on_conflict_do_nothing(index_elements=[User.auth_subject])

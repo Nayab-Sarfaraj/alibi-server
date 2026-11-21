@@ -45,6 +45,8 @@ def test_profile_update_allows_only_explicit_profile_fields() -> None:
         {"display_name": ""},
         {"display_name": "x" * 101},
         {"avatar_url": "ftp://cdn.example.com/avatar.png"},
+        {"avatar_url": "https:///avatar.png"},
+        {"avatar_url": "https://"},
         {"avatar_url": "https://example.com/" + "x" * 500},
         {"email": "not-allowed@example.com"},
         {"auth_subject": str(uuid4())},

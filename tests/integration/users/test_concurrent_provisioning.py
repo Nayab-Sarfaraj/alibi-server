@@ -15,7 +15,13 @@ from app.modules.users.models import User
 async def test_concurrent_first_requests_create_one_user(
     test_settings: Settings,
 ) -> None:
-    url = test_settings.database_url
+    url = (
+        test_settings.TEST_DATABASE_URL.get_secret_value()
+        if test_settings.TEST_DATABASE_URL is not None
+        else None
+    )
+    if not url or not url.endswith("/alibi_test"):
+        raise RuntimeError("A dedicated alibi_test database is required")
     engine = create_async_engine(url)
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
     identity = AuthenticatedIdentity(auth_subject=uuid4(), is_guest=False)

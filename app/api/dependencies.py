@@ -14,6 +14,7 @@ from jwt import (
     PyJWKClientError,
     PyJWKSetError,
 )
+from starlette.concurrency import run_in_threadpool
 
 from app.core.config import settings
 
@@ -84,7 +85,10 @@ async def get_current_user(
 
     jwk_client = get_jwk_client()
     try:
-        signing_key = jwk_client.get_signing_key_from_jwt(raw_jwt_token)
+        signing_key = await run_in_threadpool(
+            jwk_client.get_signing_key_from_jwt,
+            raw_jwt_token,
+        )
     except (
         PyJWKClientConnectionError,
         PyJWKSetError,

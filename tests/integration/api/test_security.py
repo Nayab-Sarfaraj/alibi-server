@@ -1,9 +1,28 @@
+import base64
+import json
+
 import pytest
 from fastapi import HTTPException
 from httpx import AsyncClient
 
 from app.api.dependencies import AuthenticatedUser, get_current_user
 from app.core.authorization import require_role
+
+
+def _synthetic_jwt() -> str:
+    """Build a structurally valid but unsigned JWT for failure-path tests."""
+
+    def encode(segment: dict[str, str]) -> str:
+        encoded = base64.urlsafe_b64encode(json.dumps(segment).encode()).decode()
+        return encoded.rstrip("=")
+
+    return ".".join(
+        [
+            encode({"alg": "ES256", "kid": "test"}),
+            encode({"sub": "test"}),
+            "dGVzdC1zaWduYXR1cmU",
+        ]
+    )
 
 
 async def test_invalid_host_rejected(client: AsyncClient) -> None:
@@ -75,12 +94,7 @@ async def test_auth_test_route_returns_503_when_jwks_unavailable(
 
     response = await client.get(
         "/api/v1/auth/test",
-        headers={
-            "Authorization": (
-                "Bearer eyJhbGciOiJFUzI1NiIsImtpZCI6InRlc3QifQ."
-                "eyJzdWIiOiJ0ZXN0In0.c2lnbmF0dXJl"
-            )
-        },
+        headers={"Authorization": f"Bearer {_synthetic_jwt()}"},
     )
     assert response.status_code == 503
     assert (
