@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     DB_MAX_OVERFLOW: int = Field(default=10, ge=0)
     DB_POOL_TIMEOUT: int = Field(default=10, gt=0)
     DB_POOL_RECYCLE: int = Field(default=1800, gt=0)
+    REDIS_URL: SecretStr = SecretStr("redis://localhost:6379/0")
+    REDIS_MAX_CONNECTIONS: int = Field(default=20, ge=1)
+    REDIS_SOCKET_TIMEOUT: float = Field(default=2.0, gt=0)
     SQL_ECHO: bool = Field(default=False, validation_alias="SQL_ECHO")
     APP_DEBUG: bool = Field(default=False, validation_alias="APP_DEBUG")
     SECRET_KEY: SecretStr = Field(
@@ -65,7 +68,7 @@ class Settings(BaseSettings):
 
     def redacted_settings(self) -> dict[str, object]:
         """Return safe configuration metadata suitable for diagnostic logs."""
-        return self.model_dump(exclude={"DATABASE_URL", "SECRET_KEY"})
+        return self.model_dump(exclude={"DATABASE_URL", "REDIS_URL", "SECRET_KEY"})
 
     def validate_required_settings(self) -> None:
         """Reject unsafe placeholder configuration in deployed environments."""
@@ -103,7 +106,7 @@ class Settings(BaseSettings):
 
 class DevelopmentSettings(Settings):
     APP_ENV: Literal["development"] = "development"
-    SQL_ECHO: bool = True
+    SQL_ECHO: bool = False
     APP_DEBUG: bool = True
 
 

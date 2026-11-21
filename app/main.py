@@ -6,32 +6,37 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from app.api.health import router as health_router
+from app.api.metrics import router as metrics_router
 from app.api.router import router as api_router
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import register_security_middleware
+from app.core.request_context import RequestContextMiddleware
 from app.db.session import close_db, engine
+from app.infrastructure.cache.redis_client import check_redis, create_redis_client
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Manage shared application resources across the ASGI lifecycle."""
     settings.validate_required_settings()
-    configure_logging(
-        settings.LOG_LEVEL,
-        development=settings.APP_ENV == "development",
-    )
+    redis_client = create_redis_client()
+    app.state.redis = redis_client
     try:
         async with engine.connect() as connection:
             await connection.execute(text("SELECT 1"))
+
+        await check_redis(redis_client)
         yield
     finally:
+        await redis_client.aclose()
         await close_db()
 
 
 def create_app() -> FastAPI:
     """Build the Alibi ASGI application with environment-specific settings."""
+    configure_logging(settings.LOG_LEVEL)
     app = FastAPI(
         title=settings.PROJECT_NAME,
         description="Alibi Backend API",
@@ -54,8 +59,10 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
         allow_headers=["Authorization", "Content-Type"],
     )
+    app.add_middleware(RequestContextMiddleware)
     register_exception_handlers(app)
     app.include_router(health_router)
+    app.include_router(metrics_router)
     app.include_router(api_router)
     return app
 
