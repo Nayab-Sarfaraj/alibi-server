@@ -1,0 +1,85 @@
+
+name: Alibi Backend CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend Checks
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: alibi
+          POSTGRES_PASSWORD: ${{ github.run_id }}
+          POSTGRES_DB: alibi_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U alibi -d alibi_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      APP_ENV: testing
+      DEBUG: "false"
+      SQL_ECHO: "false"
+      SECRET_KEY: ${{ github.run_id }}
+      DATABASE_URL: postgresql+psycopg://alibi:${{ github.run_id }}@localhost:5432/alibi_test
+      TEST_DATABASE_URL: postgresql+psycopg://alibi:${{ github.run_id }}@localhost:5432/alibi_test
+      REDIS_URL: redis://localhost:6379/0
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync --locked --python 3.11
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Ruff format
+        run: uv run ruff format --check .
+
+      - name: Mypy
+        run: uv run mypy app
+
+      - name: Apply migrations
+        run: uv run alembic upgrade head
+
+      - name: Verify migrations
+        run: uv run alembic check
+
+      - name: Run tests
+        run: uv run pytest -v --cov=app --cov-report=term-missing
+
+      - name: Build Docker image
+        run: docker build -t alibi-server:ci .
