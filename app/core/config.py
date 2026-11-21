@@ -1,6 +1,8 @@
 import os
+from ipaddress import ip_address
 from pathlib import Path
 from typing import Literal
+from urllib.parse import urlparse
 
 from dotenv import dotenv_values
 from pydantic import Field, SecretStr
@@ -61,6 +63,15 @@ class Settings(BaseSettings):
     SECRET_KEY: SecretStr = Field(
         default=SecretStr("your-secret-key"), validation_alias="SECRET_KEY"
     )
+    SUPABASE_URL: str = Field(default="", validation_alias="SUPABASE_URL")
+    SUPABASE_PUBLISHABLE_KEY: str = Field(
+        default="", validation_alias="SUPABASE_PUBLISHABLE_KEY"
+    )
+    SUPABASE_JWT_ISSUER: str = Field(default="", validation_alias="SUPABASE_JWT_ISSUER")
+    SUPABASE_JWKS_URL: str = Field(default="", validation_alias="SUPABASE_JWKS_URL")
+    SUPABASE_JWT_AUDIENCE: str = Field(
+        default="authenticated", validation_alias="SUPABASE_JWT_AUDIENCE"
+    )
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
@@ -70,6 +81,14 @@ class Settings(BaseSettings):
     )
 
     def model_post_init(self, __context: object) -> None:
+        """Derive default Supabase auth endpoints if SUPABASE_URL is provided."""
+        if self.SUPABASE_URL:
+            base_url = self.SUPABASE_URL.rstrip("/")
+            if not self.SUPABASE_JWT_ISSUER:
+                self.SUPABASE_JWT_ISSUER = f"{base_url}/auth/v1"
+            if not self.SUPABASE_JWKS_URL:
+                self.SUPABASE_JWKS_URL = f"{base_url}/auth/v1/.well-known/jwks.json"
+
         """Give mounted deployment secrets precedence over environment values."""
         if self.APP_ENV not in {"staging", "production"}:
             return
@@ -111,6 +130,28 @@ class Settings(BaseSettings):
 
         if self.DATABASE_URL is None:
             errors.append("DATABASE_URL must be configured")
+
+        if self.SUPABASE_URL:
+            parsed_url = urlparse(self.SUPABASE_URL)
+            is_loopback = parsed_url.hostname == "localhost"
+            if parsed_url.hostname and not is_loopback:
+                try:
+                    is_loopback = ip_address(parsed_url.hostname).is_loopback
+                except ValueError:
+                    pass
+            if parsed_url.scheme == "https" and parsed_url.hostname:
+                pass
+            elif (
+                self.APP_ENV == "development"
+                and parsed_url.scheme == "http"
+                and is_loopback
+            ):
+                pass
+            else:
+                errors.append(
+                    "SUPABASE_URL must use HTTPS outside development; "
+                    "development HTTP URLs must use a loopback host"
+                )
 
         if self.APP_ENV in {"staging", "production"}:
             if not self.TRUSTED_HOSTS or "*" in self.TRUSTED_HOSTS:

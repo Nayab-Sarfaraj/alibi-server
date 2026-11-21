@@ -48,3 +48,75 @@ def test_deployed_secret_files_override_environment_values(
         configured_settings.database_url == "postgresql+psycopg://file:secret@db/alibi"
     )
     assert configured_settings.secret_key == "s" * 32
+
+
+def test_supabase_settings_defaults_and_derivation() -> None:
+    settings_with_url = Settings(
+        _env_file=None,
+        SUPABASE_URL="https://test-project.supabase.co",
+        SUPABASE_JWKS_URL="",
+    )
+    assert settings_with_url.SUPABASE_URL == "https://test-project.supabase.co"
+    assert (
+        settings_with_url.SUPABASE_JWT_ISSUER
+        == "https://test-project.supabase.co/auth/v1"
+    )
+    assert (
+        settings_with_url.SUPABASE_JWKS_URL
+        == "https://test-project.supabase.co/auth/v1/.well-known/jwks.json"
+    )
+    assert settings_with_url.SUPABASE_JWT_AUDIENCE == "authenticated"
+
+
+def test_supabase_settings_explicit_override() -> None:
+    settings_custom = Settings(
+        _env_file=None,
+        SUPABASE_URL="https://test-project.supabase.co",
+        SUPABASE_PUBLISHABLE_KEY="test-publishable-key",
+        SUPABASE_JWT_ISSUER="https://custom-issuer.example.com",
+        SUPABASE_JWKS_URL="https://custom-issuer.example.com/jwks.json",
+        SUPABASE_JWT_AUDIENCE="custom-audience",
+    )
+    assert settings_custom.SUPABASE_URL == "https://test-project.supabase.co"
+    assert settings_custom.SUPABASE_PUBLISHABLE_KEY == "test-publishable-key"
+    assert settings_custom.SUPABASE_JWT_ISSUER == "https://custom-issuer.example.com"
+    assert (
+        settings_custom.SUPABASE_JWKS_URL
+        == "https://custom-issuer.example.com/jwks.json"
+    )
+    assert settings_custom.SUPABASE_JWT_AUDIENCE == "custom-audience"
+
+
+@pytest.mark.parametrize(
+    ("environment", "url"),
+    [
+        ("development", "http://supabase.example.com"),
+        ("testing", "http://127.0.0.1:54321"),
+        ("production", "http://supabase.example.com"),
+        ("production", "https:///missing-host"),
+    ],
+)
+def test_supabase_url_rejects_cleartext_or_invalid_hosts(
+    environment: str,
+    url: str,
+) -> None:
+    configured_settings = Settings(
+        _env_file=None,
+        APP_ENV=environment,
+        DATABASE_URL="postgresql+psycopg://user@localhost/alibi",
+        SUPABASE_URL=url,
+    )
+
+    with pytest.raises(ValueError, match="SUPABASE_URL"):
+        configured_settings.validate_required_settings()
+
+
+def test_development_allows_loopback_http_supabase_url() -> None:
+    configured_settings = Settings(
+        _env_file=None,
+        APP_ENV="development",
+        DATABASE_URL="postgresql+psycopg://user@localhost/alibi",
+        SUPABASE_URL="http://127.0.0.1:54321",
+    )
+
+    configured_settings.validate_required_settings()
