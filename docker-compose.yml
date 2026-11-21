@@ -1,31 +1,85 @@
-version: "3.9"
-
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: alibi-server-app
-    ports:
-      - "8000:8000"
-    env_file:
-      - .env
-    depends_on:
-      - db
-    restart: on-failure
-
-  db:
-    image: postgres:16-alpine
-    container_name: alibi-server-db
-    environment:
-      POSTGRES_USER: courtroom
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: courtroom
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+  postgres:
+    image: postgres:16
     restart: unless-stopped
+    environment:
+      POSTGRES_USER: alibi
+      POSTGRES_PASSWORD:
+      POSTGRES_DB: alibi_db
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - alibi_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U alibi -d alibi_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: alibi
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    restart: unless-stopped
+    command:
+      - sh
+      - -c
+      - >-
+        export DATABASE_URL="postgresql+psycopg://alibi:$$(python -c
+        'from urllib.parse import quote; import os;
+        print(quote(os.environ["POSTGRES_PASSWORD"], safe=""))')@postgres:5432/alibi_db";
+        export RABBITMQ_URL="amqp://alibi:$$(python -c
+        'from urllib.parse import quote; import os;
+        print(quote(os.environ["RABBITMQ_PASSWORD"], safe=""))')@rabbitmq:5672/";
+        exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      APP_ENV: development
+      APP_HOST: 0.0.0.0
+      APP_PORT: "8000"
+      APP_DEBUG: "true"
+      POSTGRES_PASSWORD:
+      RABBITMQ_PASSWORD:
+      REDIS_URL: redis://redis:6379/0
+      SQL_ECHO: "false"
+      WATCHFILES_FORCE_POLLING: "true"
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./app:/app/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
 volumes:
-  postgres_data:
+  alibi_postgres_data:
+  rabbitmq_data:

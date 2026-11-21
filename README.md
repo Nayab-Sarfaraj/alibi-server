@@ -1,66 +1,117 @@
 # Alibi Server
 
-A production-ready FastAPI service scaffold for Alibi.
+Backend for Alibi, an AI-powered interrogation game featuring intelligent
+detectives, persistent memory, evidence-based investigations, and dynamic
+verdicts.
 
-## Features
-
-- FastAPI application layout with versioned API routing
-- Environment-based configuration using `python-dotenv` and `pydantic-settings`
-- SQLAlchemy ORM-based database access for PostgreSQL
-- Docker and Docker Compose setup for local development
-- Pytest-based tests and developer tooling support
-
-## Requirements
+## Tech Stack
 
 - Python 3.11+
-- Docker (optional for containerized deployment)
+- FastAPI
+- PostgreSQL and SQLAlchemy 2.x
+- Alembic
+- Redis
+- RabbitMQ (local broker configuration; worker processing is not implemented yet)
+- Pydantic Settings
+- Docker Compose and uv
+- pytest, Ruff, and mypy
 
-## Local development
+## Prerequisites
 
-1. Create a virtual environment:
+- Docker Desktop with Docker Compose
+- Python 3.11+
+- [uv](https://docs.astral.sh/uv/)
+- Git
 
-   ```bash
-   python -m venv .venv
-   .venv\Scripts\activate
-   ```
+## Quick Start
 
-2. Install dependencies:
+From the `backend/` directory:
 
-   ```bash
-   pip install -r requirements.txt
-   pip install -r requirements-dev.txt
-   ```
-
-3. Create your environment file:
-
-   ```bash
-   copy NUL .env
-   ```
-
-   Then set values such as `DATABASE_URL` for your PostgreSQL connection.
-
-4. Start the app:
+1. Create local configuration and install dependencies.
 
    ```bash
-   uvicorn app.main:app --host 0.0.0.0 --port 8000
+   cp .env.example .env
+   uv sync
    ```
 
-5. Open documentation:
-   - Swagger UI: `http://127.0.0.1:8000/docs`
-   - ReDoc: `http://127.0.0.1:8000/redoc`
+   Set secure local values for `POSTGRES_PASSWORD`, `RABBITMQ_PASSWORD`, and
+   `SECRET_KEY` in `.env`. The example file documents every supported setting.
 
-## Docker
+2. Start local services and the API.
 
-Build and run with Docker:
+   ```bash
+   make up
+   ```
+
+3. Apply migrations.
+
+   ```bash
+   make migrate
+   ```
+
+4. Verify the API.
+
+   ```bash
+   curl http://localhost:8000/health/live
+   curl http://localhost:8000/health/ready
+   ```
+
+The API runs at http://localhost:8000. Swagger UI is available at
+http://localhost:8000/docs outside production.
+
+## Local Services
+
+| Service | Host address | Purpose |
+| --- | --- | --- |
+| API | `http://localhost:8000` | FastAPI application |
+| PostgreSQL | `localhost:5433` | Durable application data |
+| Redis | `localhost:6379` | Temporary cache |
+| RabbitMQ | `localhost:5672` | Local broker configuration |
+| RabbitMQ Management | http://localhost:15672 | Local broker UI |
+
+RabbitMQ uses the `alibi` user and the local `RABBITMQ_PASSWORD`. Messaging,
+outbox dispatch, and background worker behavior are not implemented yet.
+
+## Development Commands
 
 ```bash
-docker compose up --build
+make up       # build and start services
+make down     # stop services
+make logs     # follow API logs
+make ps       # show service status
+make migrate  # apply Alembic migrations in the API container
+make test     # run tests from the host environment
+make lint     # run Ruff linting
+make format   # format code with Ruff
+make check    # lint, format-check, and type-check
 ```
 
-## Tests
+## Testing
 
-Run the suite with:
+Tests use a dedicated PostgreSQL database named `alibi_test`; they do not use
+the development database. Create it once after PostgreSQL starts:
 
 ```bash
-python -m pytest
+docker compose exec postgres \
+  psql -U alibi -d postgres -c "CREATE DATABASE alibi_test;"
 ```
+
+Set `TEST_DATABASE_URL` in `.env` to that database. Then run:
+
+```bash
+make test
+uv run pytest --cov=app --cov-report=term-missing
+```
+
+## Documentation
+
+- [Architecture](docs/architecture.md)
+- [Configuration](docs/configuration.md)
+- [Development guide](docs/development.md)
+- [Deployment handoff](docs/deployment.md)
+
+## Status
+
+Phase 3 backend foundation is in progress. Authentication, case management,
+game logic, AI interrogation, transactional outbox dispatch, and background
+worker processing are implemented in later phases.

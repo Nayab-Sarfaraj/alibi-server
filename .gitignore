@@ -7,6 +7,7 @@ __pycache__/
 *.sqlite3
 *.db
 *.log
+.coverage
 .env
 .env.local
 
@@ -26,3 +27,6 @@ docker-compose.override.yml
 # OS files
 .DS_Store
 Thumbs.db
+
+
+alibi_server.egg-info

@@ -1,10 +1,6 @@
-from fastapi import APIRouter
-
-from app.api.v1.endpoints import auth, health
-
-api_router = APIRouter()
-api_router.include_router(health.router)
-api_router.include_router(auth.router, prefix="/auth")
+from app.api.v1.router import router
 
 # Backward-compatible alias used by existing imports.
-router = api_router
+api_router = router
+
+__all__ = ["api_router", "router"]

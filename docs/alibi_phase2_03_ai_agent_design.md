@@ -111,6 +111,7 @@ Use a **transient typed graph state** separate from the database's **authoritati
 ```python
 from typing import Literal, TypedDict
 
+
 class TurnGraphState(TypedDict, total=False):
     session_id: str
     turn_id: str

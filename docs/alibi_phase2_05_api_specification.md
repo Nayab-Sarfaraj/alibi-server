@@ -672,16 +672,19 @@ from enum import Enum
 from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
+
 class Difficulty(str, Enum):
     ROOKIE = "ROOKIE"
     INTERMEDIATE = "INTERMEDIATE"
     EXPERT = "EXPERT"
+
 
 class SessionStatus(str, Enum):
     CREATED = "CREATED"
     ACTIVE = "ACTIVE"
     COMPLETED = "COMPLETED"
     ABANDONED = "ABANDONED"
+
 
 class TurnStatus(str, Enum):
     PENDING = "PENDING"
@@ -690,11 +693,13 @@ class TurnStatus(str, Enum):
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
 
+
 class SessionCreateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     case_id: UUID
     detective_id: UUID
     difficulty: Difficulty
+
 
 class TurnSubmitRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")

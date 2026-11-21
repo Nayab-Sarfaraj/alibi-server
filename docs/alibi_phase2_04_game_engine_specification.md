@@ -67,11 +67,13 @@ class SessionService:
     # authorize, start/abandon/resume sessions; accept turns idempotently
     ...
 
+
 class Referee:
     # pure, repeatable rules over validated session/assessment inputs
     def assess(self, snapshot, approved_findings, ruleset): ...
     def may_conclude(self, snapshot, assessment, ruleset): ...
     def decide_verdict(self, snapshot, assessment, ruleset): ...
+
 
 class GameStateRepository:
     # DB reads and conditional atomic commits, not LLM-controlled writes
@@ -233,17 +235,17 @@ For every finding that might affect a score, the referee needs an approved, trac
 
 ```python
 class ApprovedFinding:
-    finding_id: str                 # stable issue/finding identifier
-    kind: str                       # e.g., CONTRADICTION, EVIDENCE, DEFENSE
+    finding_id: str  # stable issue/finding identifier
+    kind: str  # e.g., CONTRADICTION, EVIDENCE, DEFENSE
     source_claim_ids: tuple[str, ...]
     source_evidence_ids: tuple[str, ...]
     source_fact_ids: tuple[str, ...]
-    status: str                     # POTENTIAL/CONFIRMED/RESOLVED/DISMISSED, etc.
-    severity: str | None            # rubric-based LLM assessment
+    status: str  # POTENTIAL/CONFIRMED/RESOLVED/DISMISSED, etc.
+    severity: str | None  # rubric-based LLM assessment
     relevance: str
-    reliability: str | None         # established source property/approved assessment
+    reliability: str | None  # established source property/approved assessment
     explanation_status: str | None  # e.g., ACCEPTED / DISPUTED / PENDING
-    issue_key: str                  # stable grouping of same underlying matter
+    issue_key: str  # stable grouping of same underlying matter
     assessment_rationale: str
 ```
 
@@ -328,9 +330,12 @@ A witness's unsupported assertion can affect the detective's *questioning strate
 ```python
 # Configuration values shown symbolically because thresholds are not finalized.
 def visible_band(score: int, thresholds) -> str:
-    if score < thresholds.moderate: return "LOW"
-    if score < thresholds.high: return "MODERATE"
-    if score < thresholds.critical: return "HIGH"
+    if score < thresholds.moderate:
+        return "LOW"
+    if score < thresholds.high:
+        return "MODERATE"
+    if score < thresholds.critical:
+        return "HIGH"
     return "CRITICAL"
 ```
 
