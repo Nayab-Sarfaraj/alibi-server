@@ -12,6 +12,90 @@ from app.core.logging import correlation_id_ctx, request_id_ctx
 logger = logging.getLogger(__name__)
 
 
+class AppException(StarletteHTTPException):
+    """Base application exception with structured error code and details."""
+
+    def __init__(
+        self,
+        status_code: int,
+        code: str,
+        message: str,
+        details: Any = None,
+        headers: Mapping[str, str] | None = None,
+    ) -> None:
+        super().__init__(status_code=status_code, detail=message, headers=headers)
+        self.code = code
+        self.details = details
+
+
+class NotFoundError(AppException):
+    def __init__(
+        self,
+        message: str = "Resource not found",
+        code: str = "NOT_FOUND",
+        details: Any = None,
+        headers: Mapping[str, str] | None = None,
+    ) -> None:
+        super().__init__(
+            status_code=404,
+            code=code,
+            message=message,
+            details=details,
+            headers=headers,
+        )
+
+
+class ConflictError(AppException):
+    def __init__(
+        self,
+        message: str = "Resource conflict",
+        code: str = "CONFLICT",
+        details: Any = None,
+        headers: Mapping[str, str] | None = None,
+    ) -> None:
+        super().__init__(
+            status_code=409,
+            code=code,
+            message=message,
+            details=details,
+            headers=headers,
+        )
+
+
+class BadRequestError(AppException):
+    def __init__(
+        self,
+        message: str = "Bad request",
+        code: str = "BAD_REQUEST",
+        details: Any = None,
+        headers: Mapping[str, str] | None = None,
+    ) -> None:
+        super().__init__(
+            status_code=400,
+            code=code,
+            message=message,
+            details=details,
+            headers=headers,
+        )
+
+
+class DatabaseError(AppException):
+    def __init__(
+        self,
+        message: str = "Database operation failed",
+        code: str = "DATABASE_ERROR",
+        details: Any = None,
+        headers: Mapping[str, str] | None = None,
+    ) -> None:
+        super().__init__(
+            status_code=500,
+            code=code,
+            message=message,
+            details=details,
+            headers=headers,
+        )
+
+
 def error_response(
     status_code: int,
     code: str,
@@ -37,10 +121,13 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def http_exception_handler(
         request: Request, exc: StarletteHTTPException
     ) -> JSONResponse:
+        code = getattr(exc, "code", "HTTP_ERROR")
+        details = getattr(exc, "details", None)
         return error_response(
             exc.status_code,
-            "HTTP_ERROR",
+            code,
             str(exc.detail),
+            details=details,
             headers=exc.headers,
         )
 

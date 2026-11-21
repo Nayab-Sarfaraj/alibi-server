@@ -61,6 +61,15 @@ class Settings(BaseSettings):
     SECRET_KEY: SecretStr = Field(
         default=SecretStr("your-secret-key"), validation_alias="SECRET_KEY"
     )
+    SUPABASE_URL: str = Field(default="", validation_alias="SUPABASE_URL")
+    SUPABASE_PUBLISHABLE_KEY: str = Field(
+        default="", validation_alias="SUPABASE_PUBLISHABLE_KEY"
+    )
+    SUPABASE_JWT_ISSUER: str = Field(default="", validation_alias="SUPABASE_JWT_ISSUER")
+    SUPABASE_JWKS_URL: str = Field(default="", validation_alias="SUPABASE_JWKS_URL")
+    SUPABASE_JWT_AUDIENCE: str = Field(
+        default="authenticated", validation_alias="SUPABASE_JWT_AUDIENCE"
+    )
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
@@ -70,6 +79,14 @@ class Settings(BaseSettings):
     )
 
     def model_post_init(self, __context: object) -> None:
+        """Derive default Supabase auth endpoints if SUPABASE_URL is provided."""
+        if self.SUPABASE_URL:
+            base_url = self.SUPABASE_URL.rstrip("/")
+            if not self.SUPABASE_JWT_ISSUER:
+                self.SUPABASE_JWT_ISSUER = f"{base_url}/auth/v1"
+            if not self.SUPABASE_JWKS_URL:
+                self.SUPABASE_JWKS_URL = f"{base_url}/auth/v1/.well-known/jwks.json"
+
         """Give mounted deployment secrets precedence over environment values."""
         if self.APP_ENV not in {"staging", "production"}:
             return

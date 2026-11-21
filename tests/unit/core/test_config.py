@@ -48,3 +48,39 @@ def test_deployed_secret_files_override_environment_values(
         configured_settings.database_url == "postgresql+psycopg://file:secret@db/alibi"
     )
     assert configured_settings.secret_key == "s" * 32
+
+
+def test_supabase_settings_defaults_and_derivation() -> None:
+    settings_with_url = Settings(
+        _env_file=None,
+        SUPABASE_URL="https://test-project.supabase.co",
+    )
+    assert settings_with_url.SUPABASE_URL == "https://test-project.supabase.co"
+    assert (
+        settings_with_url.SUPABASE_JWT_ISSUER
+        == "https://test-project.supabase.co/auth/v1"
+    )
+    assert (
+        settings_with_url.SUPABASE_JWKS_URL
+        == "https://test-project.supabase.co/auth/v1/.well-known/jwks.json"
+    )
+    assert settings_with_url.SUPABASE_JWT_AUDIENCE == "authenticated"
+
+
+def test_supabase_settings_explicit_override() -> None:
+    settings_custom = Settings(
+        _env_file=None,
+        SUPABASE_URL="https://test-project.supabase.co",
+        SUPABASE_PUBLISHABLE_KEY="test-publishable-key",
+        SUPABASE_JWT_ISSUER="https://custom-issuer.example.com",
+        SUPABASE_JWKS_URL="https://custom-issuer.example.com/jwks.json",
+        SUPABASE_JWT_AUDIENCE="custom-audience",
+    )
+    assert settings_custom.SUPABASE_URL == "https://test-project.supabase.co"
+    assert settings_custom.SUPABASE_PUBLISHABLE_KEY == "test-publishable-key"
+    assert settings_custom.SUPABASE_JWT_ISSUER == "https://custom-issuer.example.com"
+    assert (
+        settings_custom.SUPABASE_JWKS_URL
+        == "https://custom-issuer.example.com/jwks.json"
+    )
+    assert settings_custom.SUPABASE_JWT_AUDIENCE == "custom-audience"

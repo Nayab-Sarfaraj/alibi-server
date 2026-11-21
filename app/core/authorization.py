@@ -5,7 +5,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 
-from app.api.dependencies import AuthenticatedUser, get_current_user
+from app.api.dependencies import get_current_user
 
 
 def require_role(allowed_roles: set[str]) -> Callable[..., object]:
@@ -13,11 +13,14 @@ def require_role(allowed_roles: set[str]) -> Callable[..., object]:
 
     async def check_role(
         user: Annotated[
-            AuthenticatedUser,
+            object,
             Depends(get_current_user),
         ],
-    ) -> AuthenticatedUser:
-        if user.role not in allowed_roles:
+    ) -> object:
+        role = getattr(user, "role", None)
+        if role is None and isinstance(user, dict):
+            role = user.get("role")
+        if role not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Insufficient permissions",

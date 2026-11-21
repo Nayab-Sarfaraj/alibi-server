@@ -30,6 +30,8 @@ dependencies = [
   "prometheus-client>=0.26.0",
   "redis>=8.1.0",
   "aio-pika>=10.2.3",
+  "httpx>=0.28.1",
+  "pyjwt[crypto]>=2.15.1",
 ]
 
 [project.optional-dependencies]
