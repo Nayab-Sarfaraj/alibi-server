@@ -32,6 +32,7 @@ dependencies = [
   "aio-pika>=10.2.3",
   "httpx>=0.28.1",
   "pyjwt[crypto]>=2.15.1",
+  "supabase>=2.34.1",
 ]
 
 [project.optional-dependencies]

@@ -44,6 +44,7 @@ class AuthenticatedIdentity:
     auth_subject: UUID
     is_guest: bool
     email: str | None = None
+    access_token: str = ""
 
 
 @dataclass(frozen=True)
@@ -73,10 +74,8 @@ async def get_current_user(
 
     raw_jwt_token = credentials.credentials
     jwk_client = get_jwk_client()
-    print("token", raw_jwt_token)
     try:
         signing_key = jwk_client.get_signing_key_from_jwt(raw_jwt_token)
-        print("key", signing_key)
     except (
         PyJWKClientConnectionError,
         PyJWKSetError,
@@ -107,7 +106,6 @@ async def get_current_user(
             audience=settings.SUPABASE_JWT_AUDIENCE,
             options={"require": ["exp", "iss", "aud", "sub"]},
         )
-        print("payload", payload)
     except jwt.PyJWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -156,6 +154,7 @@ async def get_current_user(
         auth_subject=auth_subject,
         is_guest=is_guest,
         email=email,
+        access_token=raw_jwt_token,
     )
 
 

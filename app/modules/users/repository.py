@@ -5,11 +5,11 @@ from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import AuthenticatedIdentity
-from app.core.exceptions import DatabaseError
+from app.core.exceptions import ConflictError, DatabaseError
 from app.modules.users.models import User
 
 logger = logging.getLogger(__name__)
@@ -84,9 +84,46 @@ async def create_user(
         ) from exc
 
 
+async def synchronize_guest_identity(
+    user: User,
+    identity: AuthenticatedIdentity,
+    db: AsyncSession,
+) -> User:
+    """Persist the email only when a guest identity becomes an email identity."""
+    if not (
+        user.is_guest
+        and user.email is None
+        and not identity.is_guest
+        and identity.email
+    ):
+        return user
+
+    user.email = identity.email
+    user.is_guest = False
+    try:
+        await db.flush()
+        await db.commit()
+        await db.refresh(user)
+        return user
+    except IntegrityError as exc:
+        await db.rollback()
+        raise ConflictError(
+            message="An account already uses this email address",
+            code="EMAIL_ALREADY_IN_USE",
+        ) from exc
+    except SQLAlchemyError as exc:
+        await db.rollback()
+        logger.exception("Database error synchronizing guest identity")
+        raise DatabaseError(
+            message="Failed to synchronize authenticated user identity",
+            code="DATABASE_ERROR",
+        ) from exc
+
+
 __all__ = [
     "create_user",
     "find_user_auth_subject",
     "get_user_by_auth_subject",
     "get_user_by_id",
+    "synchronize_guest_identity",
 ]

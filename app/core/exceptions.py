@@ -96,6 +96,15 @@ class DatabaseError(AppException):
         )
 
 
+class ExternalServiceError(AppException):
+    def __init__(
+        self,
+        message: str = "An external service request failed",
+        code: str = "EXTERNAL_SERVICE_ERROR",
+    ) -> None:
+        super().__init__(status_code=503, code=code, message=message)
+
+
 def error_response(
     status_code: int,
     code: str,
