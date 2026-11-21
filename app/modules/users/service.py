@@ -18,6 +18,7 @@ from app.core.exceptions import (
 )
 from app.modules.users import repository as user_repository
 from app.modules.users.models import User
+from app.modules.users.schemas import UserProfileUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -204,6 +205,16 @@ async def upgrade_user_email(
     await request_supabase_email_change(identity.access_token, email)
 
 
+async def update_user_profile(
+    identity: AuthenticatedIdentity,
+    profile: UserProfileUpdate,
+    db: AsyncSession,
+) -> User:
+    """Update the resolved caller's allowlisted profile fields only."""
+    user = await get_or_create_user(identity, db)
+    return await user_repository.update_user_profile(user, profile.changes(), db)
+
+
 async def get_user_by_id(
     user_id: UUID,
     db: AsyncSession,
@@ -223,4 +234,5 @@ __all__ = [
     "get_or_create_user",
     "get_user_by_id",
     "upgrade_user_email",
+    "update_user_profile",
 ]

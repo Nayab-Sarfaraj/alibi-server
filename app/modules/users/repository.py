@@ -120,10 +120,32 @@ async def synchronize_guest_identity(
         ) from exc
 
 
+async def update_user_profile(
+    user: User,
+    changes: dict[str, str | None],
+    db: AsyncSession,
+) -> User:
+    """Persist an allowlisted set of profile fields for the resolved user."""
+    for field, value in changes.items():
+        setattr(user, field, value)
+    try:
+        await db.commit()
+        await db.refresh(user)
+        return user
+    except SQLAlchemyError as exc:
+        await db.rollback()
+        logger.exception("Database error updating user profile")
+        raise DatabaseError(
+            message="Failed to update user profile",
+            code="DATABASE_ERROR",
+        ) from exc
+
+
 __all__ = [
     "create_user",
     "find_user_auth_subject",
     "get_user_by_auth_subject",
     "get_user_by_id",
     "synchronize_guest_identity",
+    "update_user_profile",
 ]

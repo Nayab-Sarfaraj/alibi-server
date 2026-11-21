@@ -2,7 +2,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
@@ -61,9 +61,11 @@ def create_app() -> FastAPI:
     app.include_router(api_router)
 
     @app.get("/auth/test", tags=["Auth"], include_in_schema=False)
-    async def root_auth_test(user: CurrentUser) -> dict[str, Any]:
+    async def root_auth_test(user: CurrentUser, response: Response) -> dict[str, Any]:
         """Root-level alias for /api/v1/auth/test."""
-        return {"status": "authenticated", "user": user}
+        del user
+        response.headers["Cache-Control"] = "no-store"
+        return {"status": "authenticated"}
 
     # Keep CORS outside ServerErrorMiddleware so browser clients can read 500s.
     app.middleware_stack = CORSMiddleware(

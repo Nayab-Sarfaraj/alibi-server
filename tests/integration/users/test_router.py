@@ -35,6 +35,12 @@ async def test_users_me_requires_authentication(client: AsyncClient) -> None:
     assert post_response.status_code == 401
     assert post_response.headers["WWW-Authenticate"] == "Bearer"
 
+    patch_response = await client.patch(
+        "/api/v1/users/me", json={"display_name": "Unauthorized"}
+    )
+    assert patch_response.status_code == 401
+    assert patch_response.headers["WWW-Authenticate"] == "Bearer"
+
 
 async def test_upgrade_route_requires_authentication(client: AsyncClient) -> None:
     response = await client.post(
@@ -223,6 +229,74 @@ async def test_guest_identity_provisions_guest_user(
 
     assert response.status_code == 200
     assert response.json()["is_guest"] is True
+
+
+@pytest.mark.parametrize("is_guest", [True, False])
+async def test_profile_patch_updates_only_authenticated_callers_profile(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    is_guest: bool,
+) -> None:
+    identity = AuthenticatedIdentity(auth_subject=uuid4(), is_guest=is_guest)
+    other_user = User(
+        auth_subject=uuid4(),
+        display_name="Other Detective",
+        total_xp=900,
+        credit_balance=44,
+    )
+    db_session.add(other_user)
+    await db_session.flush()
+    app.dependency_overrides[get_current_user] = lambda: identity
+
+    try:
+        response = await client.patch(
+            "/api/v1/users/me",
+            json={
+                "display_name": "  Updated Detective  ",
+                "avatar_url": "https://cdn.example.com/avatar.png",
+            },
+        )
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+
+    await db_session.refresh(other_user)
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert response.json()["display_name"] == "Updated Detective"
+    assert response.json()["avatar_url"] == "https://cdn.example.com/avatar.png"
+    assert other_user.display_name == "Other Detective"
+    assert other_user.total_xp == 900
+    assert other_user.credit_balance == 44
+
+
+async def test_profile_patch_rejects_protected_fields(client: AsyncClient) -> None:
+    identity = AuthenticatedIdentity(auth_subject=uuid4(), is_guest=True)
+    app.dependency_overrides[get_current_user] = lambda: identity
+
+    try:
+        response = await client.patch(
+            "/api/v1/users/me",
+            json={"total_xp": 1000, "user_id": str(uuid4())},
+        )
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+
+    assert response.status_code == 422
+
+
+async def test_user_profiles_are_not_cached(
+    client: AsyncClient,
+) -> None:
+    identity = AuthenticatedIdentity(auth_subject=uuid4(), is_guest=True)
+    app.dependency_overrides[get_current_user] = lambda: identity
+
+    try:
+        response = await client.get("/api/v1/users/me")
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
 
 
 async def test_different_identities_receive_different_users(

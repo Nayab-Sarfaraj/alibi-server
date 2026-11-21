@@ -73,6 +73,15 @@ async def get_current_user(
         )
 
     raw_jwt_token = credentials.credentials
+    try:
+        jwt.get_unverified_header(raw_jwt_token)
+    except jwt.PyJWTError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired access token",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
+
     jwk_client = get_jwk_client()
     try:
         signing_key = jwk_client.get_signing_key_from_jwt(raw_jwt_token)

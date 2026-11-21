@@ -75,7 +75,12 @@ async def test_auth_test_route_returns_503_when_jwks_unavailable(
 
     response = await client.get(
         "/api/v1/auth/test",
-        headers={"Authorization": "Bearer some.jwt.token"},
+        headers={
+            "Authorization": (
+                "Bearer eyJhbGciOiJFUzI1NiIsImtpZCI6InRlc3QifQ."
+                "eyJzdWIiOiJ0ZXN0In0.c2lnbmF0dXJl"
+            )
+        },
     )
     assert response.status_code == 503
     assert (

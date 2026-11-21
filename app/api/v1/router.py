@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 
 from app.api.dependencies import CurrentUser
 from app.modules.cases.router import router as cases_router
@@ -17,12 +17,11 @@ router.include_router(cases_router, prefix="/cases", tags=["cases"])
 
 
 @router.get("/auth/test", tags=["Auth"])
-async def test_auth(user: CurrentUser) -> dict[str, Any]:
+async def test_auth(user: CurrentUser, response: Response) -> dict[str, Any]:
     """Temporary test route to verify Supabase JWT authentication."""
-    return {
-        "status": "authenticated",
-        "user": user,
-    }
+    del user
+    response.headers["Cache-Control"] = "no-store"
+    return {"status": "authenticated"}
 
 
 @router.get("/ping", tags=["System"])

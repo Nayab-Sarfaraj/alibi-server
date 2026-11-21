@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 
 class UserUpgradeRequest(BaseModel):
@@ -64,6 +64,47 @@ class SetPasswordRequest(BaseModel):
         return value
 
 
+class UserProfileUpdate(BaseModel):
+    """The only profile fields an authenticated user may edit."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    display_name: str | None = None
+    avatar_url: str | None = None
+
+    @model_validator(mode="after")
+    def require_update(self) -> "UserProfileUpdate":
+        if not self.model_fields_set:
+            raise ValueError("Provide at least one profile field")
+        if "display_name" in self.model_fields_set and self.display_name is None:
+            raise ValueError("Display name cannot be null")
+        return self
+
+    @field_validator("display_name")
+    @classmethod
+    def validate_display_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        display_name = value.strip()
+        if not display_name or len(display_name) > 100:
+            raise ValueError("Display name must be between 1 and 100 characters")
+        return display_name
+
+    @field_validator("avatar_url")
+    @classmethod
+    def validate_avatar_url(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        avatar_url = value.strip()
+        if len(avatar_url) > 500 or not avatar_url.startswith(("https://", "http://")):
+            raise ValueError("Avatar URL must be an HTTP(S) URL up to 500 characters")
+        return avatar_url
+
+    def changes(self) -> dict[str, str | None]:
+        """Return only fields explicitly supplied by the authenticated caller."""
+        return {field: getattr(self, field) for field in self.model_fields_set}
+
+
 class UserResponse(BaseModel):
     """Public user identity and profile schema."""
 
@@ -84,6 +125,7 @@ class UserResponse(BaseModel):
 __all__ = [
     "AuthSessionResponse",
     "SetPasswordRequest",
+    "UserProfileUpdate",
     "UserResponse",
     "UserUpgradeRequest",
     "UserUpgradeResponse",
