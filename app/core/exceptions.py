@@ -1,10 +1,13 @@
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from app.core.logging import correlation_id_ctx, request_id_ctx
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +17,7 @@ def error_response(
     code: str,
     message: str,
     details: Any = None,
+    headers: Mapping[str, str] | None = None,
 ) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,
@@ -24,6 +28,7 @@ def error_response(
                 "details": details,
             }
         },
+        headers=headers,
     )
 
 
@@ -36,6 +41,7 @@ def register_exception_handlers(app: FastAPI) -> None:
             exc.status_code,
             "HTTP_ERROR",
             str(exc.detail),
+            headers=exc.headers,
         )
 
     @app.exception_handler(RequestValidationError)
@@ -59,9 +65,17 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def internal_exception_handler(
         request: Request, exc: Exception
     ) -> JSONResponse:
-        logger.exception("Unhandled API exception")
+        request_id = getattr(request.state, "request_id", None)
+        request_token = request_id_ctx.set(request_id)
+        correlation_token = correlation_id_ctx.set(request_id)
+        try:
+            logger.exception("Unhandled API exception")
+        finally:
+            correlation_id_ctx.reset(correlation_token)
+            request_id_ctx.reset(request_token)
         return error_response(
             500,
             "INTERNAL_SERVER_ERROR",
             "An unexpected error occurred",
+            headers={"X-Request-ID": request_id} if request_id else None,
         )

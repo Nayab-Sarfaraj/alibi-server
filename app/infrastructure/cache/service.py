@@ -1,3 +1,4 @@
+import base64
 import json
 from typing import Any
 
@@ -10,7 +11,12 @@ class CacheService:
         self.environment = environment
 
     def key(self, namespace: str, identifier: str) -> str:
-        return f"alibi:{self.environment}:{namespace}:{identifier}"
+        components = (self.environment, namespace, identifier)
+        encoded = (
+            base64.urlsafe_b64encode(component.encode()).decode().rstrip("=")
+            for component in components
+        )
+        return "alibi:" + ":".join(encoded)
 
     async def get(self, namespace: str, identifier: str) -> Any | None:
         value = await self.client.get(

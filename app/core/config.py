@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from typing import Literal
 
+from dotenv import dotenv_values
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -9,7 +10,17 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 AppEnvironment = Literal["development", "testing", "staging", "production"]
 
 INSECURE_SECRET_KEYS = {"", "your-secret-key", "change-me"}
-SECRETS_DIR = Path(os.getenv("SECRETS_DIR", "/run/secrets"))
+
+
+def resolve_secrets_dir() -> Path:
+    """Read SECRETS_DIR from the process or the project's dotenv file."""
+    configured_dir = os.getenv("SECRETS_DIR")
+    if configured_dir is None:
+        configured_dir = dotenv_values(BASE_DIR / ".env").get("SECRETS_DIR")
+    return Path(configured_dir or "/run/secrets")
+
+
+SECRETS_DIR = resolve_secrets_dir()
 CONFIGURED_SECRETS_DIR = SECRETS_DIR if SECRETS_DIR.is_dir() else None
 
 
@@ -57,6 +68,16 @@ class Settings(BaseSettings):
         extra="ignore",
         secrets_dir=CONFIGURED_SECRETS_DIR,
     )
+
+    def model_post_init(self, __context: object) -> None:
+        """Give mounted deployment secrets precedence over environment values."""
+        if self.APP_ENV not in {"staging", "production"}:
+            return
+
+        for name in ("DATABASE_URL", "SECRET_KEY"):
+            secret_file = SECRETS_DIR / name
+            if secret_file.is_file():
+                setattr(self, name, SecretStr(secret_file.read_text().strip()))
 
     @property
     def database_url(self) -> str:

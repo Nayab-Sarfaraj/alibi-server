@@ -1,4 +1,7 @@
+from typing import cast
+
 import pytest
+from redis.asyncio import Redis
 
 from app.infrastructure.cache.redis_client import (
     create_redis_client,
@@ -40,3 +43,9 @@ async def test_cache_set_get_delete() -> None:
 
     finally:
         await client.aclose()
+
+
+def test_cache_key_components_cannot_collide() -> None:
+    cache = CacheService(cast(Redis, None), "testing")
+
+    assert cache.key("user:profile", "42") != cache.key("user", "profile:42")

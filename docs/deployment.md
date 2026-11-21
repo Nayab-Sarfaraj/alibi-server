@@ -20,6 +20,12 @@
 
 - HTTPS termination
 - Secure secrets management
+- For staging and production, mount readable `DATABASE_URL` and `SECRET_KEY`
+  secret files at `/run/secrets`. Set `SECRETS_DIR` in the process environment
+  to use a different mount location; these files take precedence over dotenv
+  and environment values.
+- See `.env.example` and the configuration section of the README for local
+  development defaults.
 - Database migration process
 - Health and readiness checks
 - Logging and monitoring

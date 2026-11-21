@@ -21,8 +21,8 @@ def register_db_observability(engine: AsyncEngine) -> None:
         context: Any,
         executemany: bool,
     ) -> None:
-        del cursor, statement, parameters, context, executemany
-        conn.info.setdefault("query_starts", []).append(time.perf_counter())
+        del conn, cursor, statement, parameters, executemany
+        context._alibi_query_started = time.perf_counter()
 
     @event.listens_for(engine.sync_engine, "after_cursor_execute")
     def after_execute(
@@ -33,10 +33,18 @@ def register_db_observability(engine: AsyncEngine) -> None:
         context: Any,
         executemany: bool,
     ) -> None:
-        del cursor, statement, parameters, context, executemany
-        starts: list[float] = conn.info.get("query_starts", [])
-        if starts:
-            DB_QUERY_DURATION.observe(time.perf_counter() - starts.pop())
+        del conn, cursor, statement, parameters, executemany
+        started = getattr(context, "_alibi_query_started", None)
+        if started is not None:
+            DB_QUERY_DURATION.observe(time.perf_counter() - started)
+            del context._alibi_query_started
+
+    @event.listens_for(engine.sync_engine, "handle_error")
+    def handle_error(exception_context: Any) -> None:
+        """Discard per-execution timing data when statement execution fails."""
+        context = exception_context.execution_context
+        if context is not None and hasattr(context, "_alibi_query_started"):
+            del context._alibi_query_started
 
     @event.listens_for(engine.sync_engine.pool, "checkout")
     def checkout(

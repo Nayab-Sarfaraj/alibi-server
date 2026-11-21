@@ -32,7 +32,7 @@ services:
     restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: alibi
-      RABBITMQ_DEFAULT_PASS:
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     ports:
       - "127.0.0.1:5672:5672"
       - "127.0.0.1:15672:15672"
@@ -48,21 +48,24 @@ services:
     build: .
     restart: unless-stopped
     command:
-      - uvicorn
-      - app.main:app
-      - --host
-      - 0.0.0.0
-      - --port
-      - "8000"
-      - --reload
+      - sh
+      - -c
+      - >-
+        export DATABASE_URL="postgresql+psycopg://alibi:$$(python -c
+        'from urllib.parse import quote; import os;
+        print(quote(os.environ["POSTGRES_PASSWORD"], safe=""))')@postgres:5432/alibi_db";
+        export RABBITMQ_URL="amqp://alibi:$$(python -c
+        'from urllib.parse import quote; import os;
+        print(quote(os.environ["RABBITMQ_PASSWORD"], safe=""))')@rabbitmq:5672/";
+        exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     environment:
       APP_ENV: development
       APP_HOST: 0.0.0.0
       APP_PORT: "8000"
       APP_DEBUG: "true"
-      DATABASE_URL:
+      POSTGRES_PASSWORD:
+      RABBITMQ_PASSWORD:
       REDIS_URL: redis://redis:6379/0
-      RABBITMQ_URL:
       SQL_ECHO: "false"
       WATCHFILES_FORCE_POLLING: "true"
     ports:

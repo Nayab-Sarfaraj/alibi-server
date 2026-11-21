@@ -25,6 +25,7 @@ class RequestContextMiddleware:
             return
 
         request_id = str(uuid4())
+        scope.setdefault("state", {})["request_id"] = request_id
         request_token = request_id_ctx.set(request_id)
         correlation_token = correlation_id_ctx.set(request_id)
         started = time.perf_counter()

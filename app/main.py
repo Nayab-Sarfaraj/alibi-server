@@ -52,18 +52,19 @@ def create_app() -> FastAPI:
         trusted_hosts=settings.TRUSTED_HOSTS,
         max_body_bytes=settings.MAX_REQUEST_BODY_BYTES,
     )
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.CORS_ORIGINS,
-        allow_credentials=False,
-        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
-        allow_headers=["Authorization", "Content-Type"],
-    )
     app.add_middleware(RequestContextMiddleware)
     register_exception_handlers(app)
     app.include_router(health_router)
     app.include_router(metrics_router)
     app.include_router(api_router)
+    # Keep CORS outside ServerErrorMiddleware so browser clients can read 500s.
+    app.middleware_stack = CORSMiddleware(
+        app=app.build_middleware_stack(),
+        allow_origins=settings.CORS_ORIGINS,
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+        allow_headers=["Authorization", "Content-Type"],
+    )
     return app
 
 

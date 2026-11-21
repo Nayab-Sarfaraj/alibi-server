@@ -16,6 +16,7 @@ classifiers = [
 ]
 dependencies = [
   "fastapi>=0.110.0",
+  "starlette>=1.6.0",
   "uvicorn[standard]>=0.23.0",
   "sqlalchemy[asyncio]>=2.0,<2.1",
   "psycopg[binary]>=3.2.0",
