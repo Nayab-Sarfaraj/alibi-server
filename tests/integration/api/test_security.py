@@ -6,8 +6,8 @@ from app.api.dependencies import AuthenticatedUser, get_current_user
 from app.core.authorization import require_role
 
 
-async def test_invalid_host_rejected(api_client: AsyncClient) -> None:
-    response = await api_client.get(
+async def test_invalid_host_rejected(client: AsyncClient) -> None:
+    response = await client.get(
         "/health/live",
         headers={"Host": "malicious.example"},
     )
@@ -15,8 +15,8 @@ async def test_invalid_host_rejected(api_client: AsyncClient) -> None:
     assert response.status_code == 400
 
 
-async def test_request_body_limit_rejected(api_client: AsyncClient) -> None:
-    response = await api_client.post(
+async def test_request_body_limit_rejected(client: AsyncClient) -> None:
+    response = await client.post(
         "/api/v1/ping",
         content=b"x" * 1_048_577,
     )

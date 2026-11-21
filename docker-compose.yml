@@ -27,6 +27,23 @@ services:
       timeout: 3s
       retries: 5
 
+  rabbitmq:
+    image: rabbitmq:4-management
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: alibi
+      RABBITMQ_DEFAULT_PASS:
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   api:
     build: .
     restart: unless-stopped
@@ -45,6 +62,7 @@ services:
       APP_DEBUG: "true"
       DATABASE_URL:
       REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL:
       SQL_ECHO: "false"
       WATCHFILES_FORCE_POLLING: "true"
     ports:
@@ -56,6 +74,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
 volumes:
   alibi_postgres_data:
+  rabbitmq_data:

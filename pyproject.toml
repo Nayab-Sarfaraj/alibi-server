@@ -28,6 +28,7 @@ dependencies = [
   "pip>=26.3",
   "prometheus-client>=0.26.0",
   "redis>=8.1.0",
+  "aio-pika>=10.2.3",
 ]
 
 [project.optional-dependencies]
@@ -75,4 +76,5 @@ exclude = ["alembic/versions/"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+addopts = "-ra"
 asyncio_default_fixture_loop_scope = "function"
